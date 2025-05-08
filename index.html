@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Custom Dino Game</title>
+  <style>
+    body { margin: 0; overflow: hidden; background: #f4f4f4; }
+    canvas { display: block; margin: 0 auto; background: #fff; }
+  </style>
+</head>
+<body>
+<canvas id="gameCanvas" width="1200" height="300"></canvas>
+
+<script>
+const canvas = document.getElementById("gameCanvas");
+const ctx = canvas.getContext("2d");
+
+let dinoImg = new Image();
+dinoImg.src = "dino.png";
+
+let obstacleImg1 = new Image();
+obstacleImg1.src = "obstacle.png";
+
+let obstacleImg2 = new Image();
+obstacleImg2.src = "obstacle1.png";
+
+let dino, obstacles, score, gameOver, gameStarted;
+
+function resetGame() {
+  dino = {
+    x: 50,
+    y: 250,
+    width: 60,
+    height: 60,
+    velocityY: 0,
+    jumpPower: -12,
+    gravity: 0.5,
+    onGround: true,
+    jumpCount: 0,
+    maxJumps: 2
+  };
+  obstacles = [];
+  score = 0;
+  gameOver = false;
+  gameStarted = true;
+  gameLoop();
+}
+
+function drawDino() {
+  ctx.drawImage(dinoImg, dino.x, dino.y, dino.width, dino.height);
+}
+
+function drawObstacles() {
+  for (let obs of obstacles) {
+    ctx.drawImage(obs.img, obs.x, obs.y - 30, obs.width, obs.height + 30);
+  }
+}
+
+function updateObstacles() {
+  for (let obs of obstacles) {
+    obs.x -= 6;
+  }
+  if (Math.random() < 0.01) {
+    const image = Math.random() < 0.5 ? obstacleImg1 : obstacleImg2;
+    obstacles.push({ x: canvas.width, y: 260, width: 40, height: 60, img: image });
+  }
+  obstacles = obstacles.filter(obs => obs.x + obs.width > 0);
+}
+
+function detectCollision() {
+  for (let obs of obstacles) {
+    if (
+      dino.x < obs.x + obs.width &&
+      dino.x + dino.width > obs.x &&
+      dino.y < obs.y + obs.height &&
+      dino.y + dino.height > obs.y
+    ) {
+      gameOver = true;
+    }
+  }
+}
+
+function updateDino() {
+  dino.velocityY += dino.gravity;
+  dino.y += dino.velocityY;
+  if (dino.y > 250) {
+    dino.y = 250;
+    dino.velocityY = 0;
+    dino.onGround = true;
+    dino.jumpCount = 0;
+  }
+}
+
+function drawScore() {
+  ctx.fillStyle = "#000";
+  ctx.font = "24px Arial";
+  ctx.fillText("Score: " + Math.floor(score), canvas.width - 150, 40);
+}
+
+function gameLoop() {
+  if (!gameStarted) return;
+
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  if (gameOver) {
+    ctx.fillStyle = "black";
+    ctx.font = "50px Arial";
+    ctx.fillText("GAME OVER", canvas.width / 2 - 150, 130);
+    ctx.font = "24px Arial";
+    ctx.fillText("Press R to Restart", canvas.width / 2 - 100, 180);
+    return;
+  }
+
+  drawDino();
+  drawObstacles();
+  drawScore();
+  updateDino();
+  updateObstacles();
+  detectCollision();
+  score += 0.1;
+
+  requestAnimationFrame(gameLoop);
+}
+
+function showIntroSequence() {
+  let messages = ["Welcome Fidno", "RUN from Hratus", "Press Space to Start!"];
+  let images = [dinoImg, obstacleImg2, null];
+  let index = 0;
+
+  function showNextMessage() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = "#000";
+    ctx.font = "48px Arial";
+    ctx.fillText(messages[index], canvas.width / 2 - 200, 60);
+
+    if (images[index]) {
+      ctx.drawImage(images[index], canvas.width / 2 - 200, 90, 400, 200);
+    }
+
+    index++;
+    if (index < messages.length) {
+      setTimeout(showNextMessage, 1500);
+    }
+  }
+
+  showNextMessage();
+}
+
+document.addEventListener("keydown", function (e) {
+  if ((e.code === "Space" || e.code === "ArrowUp")) {
+    if (!gameStarted) {
+      resetGame();
+      return;
+    }
+    if (dino.jumpCount < dino.maxJumps) {
+      dino.velocityY = dino.jumpPower;
+      dino.onGround = false;
+      dino.jumpCount++;
+    }
+  }
+  if (e.code === "KeyR" && gameOver) {
+    resetGame();
+  }
+});
+
+dinoImg.onload = () => obstacleImg1.onload = () => obstacleImg2.onload = showIntroSequence;
+</script>
+</body>
+</html>
